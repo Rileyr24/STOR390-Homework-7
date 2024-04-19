@@ -1,0 +1,127 @@
+---
+title: "Hw "
+author: "Riley Richardson"
+date: "1/5/2024"
+output: 
+  html_document:
+    number_sections: true
+---
+
+# 
+Recall that in class we showed that for randomized response differential privacy based on a fair coin (that is a coin that lands heads up with probability $0.5$), the estimated proportion of incriminating observations $\hat{P}$ ^[in class this was the estimated proportion of students having actually cheated] was given by $\hat{P} = 2\pi-\frac{1}{2}$ where $\pi$ is the proportion of people answering affirmative to the incriminating question.  
+
+I want you to generalize this result for a potentially biased coin.  That is, for a differentially private mechanism that uses a coin landing heads up with probability $0 \leq \theta \leq 1$, find an estimate $\hat{P}$ for the proportion of incriminating observations.  This expression should be in terms of $\theta$ and $\pi$.  
+
+**The positive response rate results from the sum of (1) the probability that someone flips heads ( $\hat{P}$ ) times the proportion of responses that were incriminating and (2) the probability that flipped tails twice. In effect, it is the proportion of people who likely told the truth and the proportion of people who falsely incriminated themselves.**
+
+$$\pi = \theta\hat{P} + (1-\theta)\theta$$
+
+**Solving this for $\hat{P}$, we get**
+$$\hat{P} = \frac{\pi - (1 - \theta)\theta}{\theta}$$
+
+#
+Next, show that this expression reduces to our result from class in the special case where $\theta = \frac{1}{2}$.
+
+$$\hat{P} = \frac{\pi - (1 - 0.5)0.5}{0.5} = 2\pi - \frac{1}{2}$$
+
+#
+Part of having an explainable model is being able to implement the algorithm from scratch.  Let's try and do this with `KNN`.  Write a function entitled `chebychev` that takes in two vectors and outputs the Chebychev or $L^\infty$ distance between said vectors.  I will test your function on two vectors below.  Then, write a `nearest_neighbors` function that finds the user specified $k$ nearest neighbors according to a user specified distance function (in this case $L^\infty$) to a user specified data point observation.  
+
+```{r}
+#student input
+#chebychev function
+cheby <- function(x,y){
+  dist <- 0
+  for(i in 1:length(x)){
+    dist_i <- abs(x[i] - y[i])
+    if(dist_i>dist){
+      dist <- dist_i
+    }
+  }
+  
+  return(dist)
+}
+
+x<- c(3,4,5)
+y<-c(7,10,1)
+cheby(x,y)
+```
+
+```{r, message=FALSE}
+library(tidyverse)
+#nearest_neighbors function
+nearest_neighbors <- function(train, test, k){
+  dist <- NULL
+  for(i in 1:nrow(train)){
+    dist[i] <- cheby(train[i,],test) %>% as.numeric()
+  }
+  nearest <- order(dist)[1:k]
+  return(nearest)
+}
+```
+
+
+#
+Finally create a `knn_classifier` function that takes the nearest neighbors specified from the above functions and assigns a class label based on the mode class label within these nearest neighbors.  I will then test your functions by finding the five nearest neighbors to the very last observation in the `iris` dataset according to the `chebychev` distance and classifying this function accordingly.  
+
+```{r}
+library(class)
+df <- data(iris) 
+
+#student input
+knn_classifier <- function(x, cl){
+  pred <- levels(x[[cl]])[table(x[[cl]]) %>% order(decreasing = TRUE) %>% .[1]]
+  return(pred)
+}
+
+#data less last observation
+x = iris[1:(nrow(iris)-1),]
+#observation to be classified
+obs = iris[nrow(iris),]
+
+#find nearest neighbors
+ind = nearest_neighbors(x[,1:4], obs[,1:4],5)
+as.matrix(x[ind,1:4])
+obs[,1:4]
+knn_classifier(x[ind,], 'Species')
+obs[,'Species']
+
+```
+
+# 
+Interpret this output.  Did you get the correct classification?  Also, if you specified $K=5$, why do you have $7$ observations included in the output dataframe?
+
+**The model found that a majority of those points closest to the last observation (by Chebychev distance) were of the "virginica" species, so the model predicted (correctly) that the last observation would likewise be of the "virginica" species. The way I did this did not produce 7 observations in the output dataframe.**
+
+
+#
+Earlier in this unit we learned about Google's DeepMind assisting in the management of acute kidney injury.  Assistance in the health care sector is always welcome, particularly if it benefits the well-being of the patient.  Even so, algorithmic assistance necessitates the acquisition and retention of sensitive health care data.  With this in mind, who should be privy to this sensitive information?  In particular, is data transfer allowed if the company managing the software is subsumed?  Should the data be made available to insurance companies who could use this to better calibrate their actuarial risk but also deny care?  Stake a position and defend it using principles discussed from the class.  
+
+**Under a utilitarian framework, I argue that access to private medical data should, as a rule, be restricted proportionally to the recipient's capacity to do harm using the data. Then, borrowing from deontology, I argue that the transfer of data to Google specifically was unethical due to Google's potential to instrumentalize people.**
+
+**Applying utilitarianism, we should endeavor to do the most good for the most people. It is true that, a single data point being virtually useless, the ability of doctors and statisticians to access large pools of data could do a monumental amount of good for humanity. It is also true, however, that each data point added to these pools contributes less to new knowledge than the last --- we face a problem of diminishing returns. Not only that, the larger a data pool becomes, the greater the likelihood it will be sought after by bad actors, such as insurance companies trying to deny care. Supplying these corporations with private data, then, is like a nice steak: it would be delicious to eat "raw," but doing so could have dangerous ramifications, so we have to cook it carefully to retain as much flavor as possible while curbing those ramifications as much as possible. We must restrict access to these data in proportion to the recipient's capacity to do harm to the individuals the data represent --- the harm principle in action.**
+
+**In this specific case, I do not believe that Google should have been allowed to access the private medical data without informed consent from the patients because Google is fundamentally an advertising company. They specialize in the processing and sale of data. They are likely to utilize these data in commercial endeavors because, otherwise, as a for-profit company, they would have no reason to be involved at all. They have a high capacity and likelihood to instrumentalize these patients, so their access should face more scrutiny than other actors. **
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
